@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Moiras Kartensammlung</title>
+
+  <!-- Optional: fallback font for SVG/text -->
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --gap: 14px;
+      --card-radius: 14px;
+      --overlay-bg: rgba(0,0,0,.85);
+      --max-width: 1200px;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    body{
+      background:#111 url("Bilder/hintergrund.jpg") center / cover no-repeat fixed;
+      color:#fff;
+      overflow:hidden; /* nur Galerie scrollt */
+    }
+
+    header{
+      backdrop-filter: blur(6px);
+      background: rgba(0,0,0,.45);
+      border-bottom: 1px solid rgba(255,255,255,.15);
+      padding: 18px 16px;
+    }
+    .wrap{
+      max-width: var(--max-width);
+      margin: 0 auto;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 16px;
+      flex-wrap: nowrap;
+    }
+
+    /* SVG title sizing (responsive) */
+    .title-svg{
+      width: min(560px, 52vw);
+      height: auto;
+      display:block;
+      flex: 0 1 auto;
+      overflow: visible;
+    }
+    @media (max-width: 750px){
+      .title-svg{ width: min(420px, 48vw); }
+    }
+
+    .controls{
+      display:flex;
+      align-items:center;
+      gap:16px;
+      flex-wrap: nowrap;
+      justify-content:flex-end;
+    }
+
+    /* Audio UI (3x bigger) */
+    .audio-box{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      padding: 14px 16px;
+      height: 96px;
+      border-radius: 22px;
+      border: none;
+      background: rgba(0,0,0,.55);
+    }
+    .mute-btn{
+      cursor:pointer;
+      width: 96px;
+      height: 96px;
+      border-radius: 22px;
+      border: none;
+      background: rgba(0,0,0,.55);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:0;
+    }
+    .mute-btn:hover{ background: rgba(0,0,0,.68); }
+    .mute-btn img{
+      width: 60px;
+      height: 60px;
+      object-fit: contain;
+      display:block;
+    }
+    input[type="range"]{
+      width: 140px;
+      height: 22px;
+      accent-color: #fff;
+    }
+
+    /* Automat button (3x bigger) */
+    .automat{
+      font-family: "Cinzel", serif;
+      cursor:pointer;
+      padding: 20px 30px;
+      height: 96px;
+      border-radius: 22px;
+      border: none;
+      background: rgba(0,0,0,.55);
+      color:#f2f2f2;
+      font-weight: 700;
+      font-size: 20px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      display:flex;
+      align-items:center;
+      gap:16px;
+      text-decoration:none;
+      white-space: nowrap;
+      text-shadow:
+        0 0 6px rgba(255,255,255,.55),
+        0 0 18px rgba(255,255,255,.30);
+    }
+    .automat:hover{ background: rgba(0,0,0,.68); }
+    .automat img{
+      width: 60px;
+      height: 60px;
+      object-fit: contain;
+      display:block;
+    }
+
+    main{
+      height: calc(100vh - 92px);
+      padding: 14px 16px 18px;
+    }
+    .gallery{
+      max-width: var(--max-width);
+      margin: 0 auto;
+      height: 100%;
+      overflow:auto;
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(0,0,0,.82); /* stark abgedunkelt */
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow: 0 10px 40px rgba(0,0,0,.45);
+    }
+
+    /* Skalierung wie vorher: 5 Karten nebeneinander + aspect-ratio */
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: var(--gap);
+      align-items:start;
+    }
+    @media (max-width: 1100px){ .grid{ grid-template-columns: repeat(4, minmax(0,1fr)); } input[type="range"]{ width: 220px; } }
+    @media (max-width: 850px){ .grid{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
+    @media (max-width: 600px){ .grid{ grid-template-columns: repeat(2, minmax(0,1fr)); } input[type="range"]{ width: 180px; } }
+
+    .card{
+      border-radius: var(--card-radius);
+      overflow:hidden;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.35);
+      box-shadow: 0 8px 22px rgba(0,0,0,.35);
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .card:hover{
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(0,0,0,.45);
+    }
+    .card button{
+      all: unset;
+      cursor:pointer;
+      display:block;
+    }
+    .thumb{
+      width:100%;
+      aspect-ratio: 2 / 3;
+      object-fit: cover;
+      display:block;
+      background: rgba(255,255,255,.06);
+    }
+
+    /* Modal */
+    .overlay{
+      position: fixed;
+      inset: 0;
+      background: var(--overlay-bg);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 18px;
+      z-index: 999;
+    }
+    .overlay[aria-hidden="false"]{ display:flex; }
+    .modal{
+      width: min(920px, 100%);
+      max-height: 92vh;
+      background: rgba(0,0,0,.72);
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 18px;
+      overflow:hidden;
+      box-shadow: 0 20px 70px rgba(0,0,0,.55);
+      display:grid;
+      grid-template-rows: auto 1fr;
+    }
+    .modal-header{
+      display:flex;
+      justify-content: space-between;
+      align-items:center;
+      gap:10px;
+      padding: 12px 14px;
+      background: rgba(0,0,0,.55);
+      border-bottom: 1px solid rgba(255,255,255,.12);
+      font-family: "Cinzel", serif;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .modal-body{
+      overflow:auto;
+      padding: 14px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    /* Fixed enlarged card scaling */
+    .full{
+      max-width: 92vw;
+      max-height: 80vh;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      box-shadow: 0 12px 40px rgba(0,0,0,.5);
+    }
+    .close{
+      cursor:pointer;
+      padding: 14px 18px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(0,0,0,.50);
+      color:#fff;
+      font-weight: 700;
+      font-family: "Cinzel", serif;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+    }
+    .close:hover{ background: rgba(0,0,0,.68); }
+  </style>
+</head>
+
+<body>
+
+<!-- Hintergrundmusik -->
+<audio id="bgm" src="sounds/hintergrund.mp3" autoplay loop preload="auto"></audio>
+
+<header>
+  <div class="wrap">
+    <!-- SVG Title (glow + letter spacing) -->
+    <svg class="title-svg" viewBox="0 0 820 150" role="img" aria-label="Moiras Kartensammlung" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="glow" x="-40%" y="-60%" width="180%" height="220%">
+          <feGaussianBlur stdDeviation="3.5" result="blur1"/>
+          <feColorMatrix in="blur1" type="matrix"
+            values="1 0 0 0 0
+                    0 1 0 0 0
+                    0 0 1 0 0
+                    0 0 0 0.85 0" result="glow1"/>
+          <feGaussianBlur stdDeviation="8" result="blur2"/>
+          <feColorMatrix in="blur2" type="matrix"
+            values="1 0 0 0 0
+                    0 1 0 0 0
+                    0 0 1 0 0
+                    0 0 0 0.45 0" result="glow2"/>
+          <feMerge>
+            <feMergeNode in="glow2"/>
+            <feMergeNode in="glow1"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+        <linearGradient id="titleFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#ffffff" stop-opacity="1"/>
+          <stop offset="1" stop-color="#e8e8e8" stop-opacity="1"/>
+        </linearGradient>
+      </defs>
+
+      <rect x="0" y="0" width="820" height="120" fill="none"/>
+      <text x="410" y="76"
+            text-anchor="middle"
+            font-family="Cinzel, serif"
+            font-weight="700"
+            font-size="44"
+            letter-spacing="8"
+            fill="url(#titleFill)"
+            filter="url(#glow)">
+        MOIRAS KARTENSAMMLUNG
+      </text>
+    </svg>
+
+    <div class="controls">
+      <div class="audio-box" aria-label="Audio Steuerung">
+        <button class="mute-btn" id="muteBtn" type="button" aria-label="Sound an/aus">
+          <img id="muteIcon" src="Bilder/sound-on.png" alt="Sound an">
+        </button>
+        <input id="volSlider" type="range" min="0" max="100" value="8" aria-label="Lautstärke">
+      </div>
+
+      <a class="automat" href="https://agrandi123.github.io/Kartenlegerin2/">
+        <img src="Bilder/thema.png" alt="Automat">
+        Automat
+      </a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="gallery" aria-label="Karten-Galerie">
+    <div class="grid" id="grid"></div>
+  </div>
+</main>
+
+<div class="overlay" id="overlay" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <strong id="modalTitle"></strong>
+      <button class="close" id="closeBtn" type="button">Schließen</button>
+    </div>
+    <div class="modal-body">
+      <img id="fullImg" class="full" alt="">
+    </div>
+  </div>
+</div>
+
+<script>
+  // === Karten ===
+  const CARD_EXTENSION = "png";
+  const CARD_PREFIX = "karte";
+  const CARD_FOLDER = "Bilder";
+  const MAX_CHECK = 200;
+
+  const grid = document.getElementById("grid");
+  const overlay = document.getElementById("overlay");
+  const fullImg = document.getElementById("fullImg");
+  const modalTitle = document.getElementById("modalTitle");
+  const closeBtn = document.getElementById("closeBtn");
+
+  function cardPath(i){ return `${CARD_FOLDER}/${CARD_PREFIX}${i}.${CARD_EXTENSION}`; }
+
+  function openModal(i){
+    modalTitle.textContent = "";
+    fullImg.src = cardPath(i);
+    fullImg.alt = `${CARD_PREFIX}${i}`;
+    overlay.setAttribute("aria-hidden","false");
+    closeBtn.focus();
+  }
+  function closeModal(){
+    overlay.setAttribute("aria-hidden","true");
+    fullImg.src = "";
+  }
+
+  function addCard(i){
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.addEventListener("click", () => openModal(i));
+
+    const img = document.createElement("img");
+    img.className = "thumb";
+    img.loading = "lazy";
+    img.src = cardPath(i);
+    img.alt = `${CARD_PREFIX}${i}`;
+
+    btn.appendChild(img);
+    card.appendChild(btn);
+    grid.appendChild(card);
+  }
+
+  function loadCards(){
+    let i = 1;
+    (function checkNext(){
+      if(i > MAX_CHECK) return;
+      const probe = new Image();
+      probe.onload = () => { addCard(i); i++; checkNext(); };
+      probe.onerror = () => { /* stoppt beim ersten fehlenden Bild */ };
+      probe.src = cardPath(i);
+    })();
+  }
+
+  closeBtn.addEventListener("click", closeModal);
+  overlay.addEventListener("click", (e) => { if(e.target === overlay) closeModal(); });
+  window.addEventListener("keydown", (e) => { if(e.key === "Escape") closeModal(); });
+
+  // === Audio ===
+  const bgm = document.getElementById("bgm");
+  const muteBtn = document.getElementById("muteBtn");
+  const muteIcon = document.getElementById("muteIcon");
+  const volSlider = document.getElementById("volSlider");
+
+  const ICON_ON  = "Bilder/sound-on.png";
+  const ICON_OFF = "Bilder/sound-off.png";
+
+  // Standard: an + leise
+  bgm.muted = false;
+  bgm.volume = 0.08;
+  volSlider.value = 8;
+
+  function refreshIcon(){
+    muteIcon.src = bgm.muted ? ICON_OFF : ICON_ON;
+    muteIcon.alt = bgm.muted ? "Sound aus" : "Sound an";
+  }
+  refreshIcon();
+
+  muteBtn.addEventListener("click", () => {
+    bgm.muted = !bgm.muted;
+    refreshIcon();
+    if(!bgm.muted) bgm.play().catch(()=>{});
+  });
+
+  volSlider.addEventListener("input", () => {
+    bgm.volume = Number(volSlider.value) / 100;
+    if(bgm.volume > 0 && bgm.muted) bgm.muted = false;
+    refreshIcon();
+  });
+
+  // Autoplay-Fallback: startet Musik beim ersten Klick
+  document.addEventListener("click", () => {
+    if(!bgm.muted) bgm.play().catch(()=>{});
+  }, { once: true });
+
+  loadCards();
+</script>
+</body>
+</html>
