@@ -335,7 +335,7 @@
   const CARD_EXTENSION = "png";
   const CARD_PREFIX = "karte";
   const CARD_FOLDER = "Bilder";
-  const MAX_CHECK = 200;
+  const CARD_COUNT = 80;
 
   const grid = document.getElementById("grid");
   const overlay = document.getElementById("overlay");
@@ -377,14 +377,9 @@
   }
 
   function loadCards(){
-    let i = 1;
-    (function checkNext(){
-      if(i > MAX_CHECK) return;
-      const probe = new Image();
-      probe.onload = () => { addCard(i); i++; checkNext(); };
-      probe.onerror = () => { /* stoppt beim ersten fehlenden Bild */ };
-      probe.src = cardPath(i);
-    })();
+    for(let i = 1; i <= CARD_COUNT; i++){
+      addCard(i);
+    }
   }
 
   closeBtn.addEventListener("click", closeModal);
