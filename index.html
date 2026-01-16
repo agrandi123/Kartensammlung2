@@ -178,6 +178,14 @@
       background: rgba(255,255,255,.06);
     }
 
+    .placeholder{
+      width:100%;
+      aspect-ratio: 2 / 3;
+      border: 2px dashed rgba(255,255,255,.25);
+      border-radius: var(--card-radius);
+      background: rgba(0,0,0,.25);
+    }
+
     /* Modal */
     .overlay{
       position: fixed;
@@ -251,7 +259,7 @@
 <body>
 
 <!-- Hintergrundmusik -->
-<audio id="bgm" src="sounds/hintergrund.mp3" autoplay loop preload="auto"></audio>
+<audio id="bgm" src="sounds/hintergrund.mp3" autoplay loop muted preload="auto"></audio>
 
 <header>
   <div class="wrap">
@@ -371,7 +379,13 @@
     img.className = "thumb";
     img.loading = "lazy";
     img.src = thumbPath(i);
-    img.alt = `${CARD_PREFIX}${i}`;
+    img.alt = "";
+    img.onerror = () => {
+      img.remove();
+      const ph = document.createElement("div");
+      ph.className = "placeholder";
+      btn.appendChild(ph);
+    };
 
     btn.appendChild(img);
     card.appendChild(btn);
@@ -420,9 +434,22 @@
     refreshIcon();
   });
 
-  // Autoplay-Fallback: startet Musik beim ersten Klick
+  // Autoplay: Browser-sicher
+  // Startet stumm (erlaubt), hebt Stummschaltung nach kurzer Zeit auf, falls möglich
+  window.addEventListener("load", () => {
+    bgm.play().then(() => {
+      setTimeout(() => {
+        bgm.muted = false;
+        refreshIcon();
+      }, 400);
+    }).catch(()=>{});
+  });
+
+  // Fallback: falls Browser blockt, startet es beim ersten Klick
   document.addEventListener("click", () => {
-    if(!bgm.muted) bgm.play().catch(()=>{});
+    bgm.muted = false;
+    bgm.play().catch(()=>{});
+    refreshIcon();
   }, { once: true });
 
   loadCards();
