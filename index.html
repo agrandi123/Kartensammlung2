@@ -344,7 +344,7 @@
   const CARD_PREFIX = "karte";
   const CARD_FOLDER = "Bilder";
   const THUMB_FOLDER = "Thumbnails";
-  const CARD_COUNT = 80;
+  const CARD_COUNT = 100;
 
   const grid = document.getElementById("grid");
   const overlay = document.getElementById("overlay");
@@ -413,8 +413,8 @@
 
   // Standard: an + leise
   bgm.muted = false;
-  bgm.volume = 0.16;
-  volSlider.value = 16;
+  bgm.volume = 0.08;
+  volSlider.value = 8;
 
   function refreshIcon(){
     muteIcon.src = bgm.muted ? ICON_OFF : ICON_ON;
